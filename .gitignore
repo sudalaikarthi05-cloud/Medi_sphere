@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-*/
+build/
+.angular/
+target/
+
+# Environment / secrets (keep .env.example)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# IDE
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Stray scratch files
+ipconfig
