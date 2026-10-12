@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend-react
+      dockerfile: Dockerfile
+    container_name: medisphere-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - medisphere-net
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: medisphere-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME:-admin}:${MONGO_INITDB_ROOT_PASSWORD:-medisphereSecret}@mongodb:27017/${MONGODB_DATABASE:-medisphere}?authSource=admin
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-medisphere}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_ENABLED=true
+      - MONGODB_ENABLED=true
+      - JWT_SECRET=${JWT_SECRET:-dev-only-insecure-jwt-signing-key-not-valid-anywhere-else}
+      - FHIR_CLIENT_ID=${FHIR_CLIENT_ID:-medisphere-client}
+    depends_on:
+      - mongodb
+      - kafka
+    networks:
+      - medisphere-net
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7.0
+    container_name: medisphere-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:-medisphereSecret}
+      - MONGO_INITDB_DATABASE=${MONGODB_DATABASE:-medisphere}
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - medisphere-net
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: medisphere-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - medisphere-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: medisphere-kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - medisphere-net
+
+volumes:
+  mongo_data:
+    driver: local
+
+networks:
+  medisphere-net:
+    driver: bridge
