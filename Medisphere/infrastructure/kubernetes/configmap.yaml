@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: medisphere-config
+  namespace: default
+  labels:
+    app.kubernetes.io/name: medisphere-cognitive-twin
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-service:9092"
+  KAFKA_ENABLED: "true"
+  MONGODB_ENABLED: "true"
+  FHIR_BASE_URL: "http://fhir-service:8081/fhir"
+  DEMO_MODE: "false"
