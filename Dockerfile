@@ -12,7 +12,7 @@ COPY backend/pom.xml ./pom.xml
 RUN mvn dependency:go-offline -B
 COPY backend/src ./src
 COPY --from=frontend-build /app/frontend/dist ./src/main/resources/static
-RUN mvn clean package -DskipTests
+RUN mvn package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
