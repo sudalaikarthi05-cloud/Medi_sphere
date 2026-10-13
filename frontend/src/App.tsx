@@ -2,10 +2,13 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import type { ReactElement } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminRoute } from './components/AdminRoute';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Patients } from './pages/Patients';
 import { Patient360 } from './pages/Patient360';
+import { Bookings } from './pages/Bookings';
+import { Admin } from './pages/Admin';
 import { useAuth } from './lib/auth';
 
 function Shell({ children }: { children: ReactElement }) {
@@ -54,6 +57,26 @@ export default function App() {
               <Patient360 />
             </Shell>
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bookings"
+        element={
+          <ProtectedRoute>
+            <Shell>
+              <Bookings />
+            </Shell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <Shell>
+              <Admin />
+            </Shell>
+          </AdminRoute>
         }
       />
       <Route

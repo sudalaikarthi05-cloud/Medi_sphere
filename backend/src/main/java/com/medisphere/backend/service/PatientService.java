@@ -6,6 +6,7 @@ import com.medisphere.backend.dto.PatientResponse;
 import com.medisphere.backend.exception.ResourceNotFoundException;
 import com.medisphere.backend.model.*;
 import com.medisphere.backend.repository.PatientRepository;
+import com.medisphere.backend.security.AccessControlService;
 import jakarta.annotation.PostConstruct;
 import org.bson.Document;
 import org.slf4j.Logger;
@@ -38,6 +39,7 @@ public class PatientService {
     private final LabReportService labReportService;
     private final RiskService riskService;
     private final AuditService auditService;
+    private final AccessControlService accessControlService;
     private final MongoTemplate mongoTemplate;
  
     // Resilient in-memory fallback cache when MongoDB is running in demo/offline mode
@@ -51,12 +53,14 @@ public class PatientService {
                           LabReportService labReportService,
                           RiskService riskService,
                           AuditService auditService,
+                          AccessControlService accessControlService,
                           MongoTemplate mongoTemplate) {
         this.patientRepository = patientRepository;
         this.vitalService = vitalService;
         this.labReportService = labReportService;
         this.riskService = riskService;
         this.auditService = auditService;
+        this.accessControlService = accessControlService;
         this.mongoTemplate = mongoTemplate;
     }
 
@@ -137,17 +141,44 @@ public class PatientService {
         } while (fallbackStore.containsKey(id));
         return id;
     }
+
+    /** Loads a patient from Mongo (live or archived) or the in-memory fallback. */
+    private Patient loadPatient(String id, boolean liveOnly) {
+        Patient patient = null;
+        try {
+            if (mongoAvailable) {
+                patient = liveOnly
+                        ? patientRepository.findByIdAndIsDeleted(id, 0).orElse(null)
+                        : patientRepository.findById(id).orElse(null);
+            }
+        } catch (Exception e) {
+            // fallback
+        }
+        if (patient == null && !mongoAvailable) {
+            patient = fallbackStore.get(id);
+            if (patient != null && liveOnly && patient.getIsDeleted() != 0) {
+                patient = null;
+            }
+        }
+        return patient;
+    }
  
     public List<Patient> getAllPatients(String search, String condition, String status, String risk) {
         List<Patient> list;
         try {
             if (mongoAvailable) {
-                list = patientRepository.findByIsDeleted(0);
+                if (accessControlService.isAdmin()) {
+                    list = patientRepository.findByIsDeleted(0);
+                } else {
+                    list = patientRepository.findByOwnerEmailAndIsDeleted(accessControlService.currentEmail(), 0);
+                }
             } else {
                 list = new ArrayList<>(fallbackStore.values());
+                list = filterVisible(list);
             }
         } catch (Exception e) {
             list = new ArrayList<>(fallbackStore.values());
+            list = filterVisible(list);
         }
 
         list.sort(Comparator.comparing(
@@ -158,48 +189,45 @@ public class PatientService {
         if (search != null && !search.isBlank()) {
             String query = search.trim().toLowerCase();
             list = list.stream().filter(p ->
-                    p.getName().toLowerCase().contains(query) ||
-                    p.getId().toLowerCase().contains(query) ||
-                    p.getCondition().toLowerCase().contains(query)
+                    (p.getName() != null && p.getName().toLowerCase().contains(query)) ||
+                    (p.getId() != null && p.getId().toLowerCase().contains(query)) ||
+                    (p.getCondition() != null && p.getCondition().toLowerCase().contains(query))
             ).collect(Collectors.toList());
         }
  
         if (condition != null && !condition.isBlank()) {
-            list = list.stream().filter(p -> p.getCondition().equalsIgnoreCase(condition)).collect(Collectors.toList());
+            list = list.stream().filter(p -> p.getCondition() != null && p.getCondition().equalsIgnoreCase(condition)).collect(Collectors.toList());
         }
  
         if (status != null && !status.isBlank()) {
-            list = list.stream().filter(p -> p.getStatus().equalsIgnoreCase(status)).collect(Collectors.toList());
+            list = list.stream().filter(p -> p.getStatus() != null && p.getStatus().equalsIgnoreCase(status)).collect(Collectors.toList());
         }
  
         if (risk != null && !risk.isBlank()) {
-            list = list.stream().filter(p -> p.getRiskLevel().equalsIgnoreCase(risk)).collect(Collectors.toList());
+            list = list.stream().filter(p -> p.getRiskLevel() != null && p.getRiskLevel().equalsIgnoreCase(risk)).collect(Collectors.toList());
         }
  
-        auditService.logAction("READ_PATIENTS_LIST", "Patient", "ALL", "Dr. Ananya Sharma", "CLINICIAN", "127.0.0.1", "SUCCESS", "Retrieved " + list.size() + " patients");
+        auditService.logAction("READ_PATIENTS_LIST", "Patient", "ALL", accessControlService.currentEmail(), "USER", "127.0.0.1", "SUCCESS", "Retrieved " + list.size() + " patients");
         return list;
+    }
+
+    /** Admins see everything; a user only ever sees their own live patients. */
+    private List<Patient> filterVisible(List<Patient> patients) {
+        return patients.stream()
+                .filter(p -> p.getIsDeleted() == 0)
+                .filter(p -> accessControlService.isAdmin()
+                        || (p.getOwnerEmail() != null && p.getOwnerEmail().equalsIgnoreCase(accessControlService.currentEmail())))
+                .collect(Collectors.toList());
     }
  
     public Patient getPatientById(String id) {
-        Patient patient = null;
-        try {
-            if (mongoAvailable) {
-                patient = patientRepository.findByIdAndIsDeleted(id, 0).orElse(null);
-            }
-        } catch (Exception e) {
-            // fallback
-        }
- 
-        if (patient == null && !mongoAvailable) {
-            patient = fallbackStore.get(id);
-        }
- 
+        Patient patient = loadPatient(id, true);
         if (patient == null) {
-            auditService.logAction("READ_PATIENT", "Patient", id, "Dr. Ananya Sharma", "CLINICIAN", "127.0.0.1", "FAILED", "Patient not found");
+            auditService.logAction("READ_PATIENT", "Patient", id, accessControlService.currentEmail(), "USER", "127.0.0.1", "FAILED", "Patient not found");
             throw new ResourceNotFoundException("Patient with ID " + id + " was not found in the clinical registry.");
         }
- 
-        auditService.logAction("READ_PATIENT", "Patient", id, "Dr. Ananya Sharma", "CLINICIAN", "127.0.0.1", "SUCCESS", "Accessed clinical profile for " + patient.getName());
+        accessControlService.assertCanAccess(patient);
+        auditService.logAction("READ_PATIENT", "Patient", id, accessControlService.currentEmail(), "USER", "127.0.0.1", "SUCCESS", "Accessed clinical profile for " + patient.getName());
         return patient;
     }
  
@@ -209,6 +237,7 @@ public class PatientService {
                     "MongoDB is unavailable. Patient was not saved.");
         }
 
+        String ownerEmail = accessControlService.currentEmail();
         String newId = generateUniqueId();
         String initialStatus = request.getStatus() != null && !request.getStatus().isBlank() ? request.getStatus() : "Active";
  
@@ -228,6 +257,7 @@ public class PatientService {
         }
  
         Patient patient = new Patient(newId, request.getName(), request.getAge(), request.getGender(), request.getCondition(), initialStatus, riskLevel, baseScore);
+        patient.setOwnerEmail(ownerEmail);
  
         try {
             // insert() never overwrites: a duplicate ID throws instead of deleting old data
@@ -246,7 +276,7 @@ public class PatientService {
         labReportService.initializePatientLabs(newId, request.getCondition());
         riskService.evaluateRisk(newId, patient);
  
-        auditService.logAction("CREATE_PATIENT", "Patient", newId, "Dr. Ananya Sharma", "CLINICIAN", "127.0.0.1", "SUCCESS", "Registered new patient: " + patient.getName());
+        auditService.logAction("CREATE_PATIENT", "Patient", newId, ownerEmail, "USER", "127.0.0.1", "SUCCESS", "Registered new patient: " + patient.getName());
         return patient;
     }
  
@@ -269,6 +299,7 @@ public class PatientService {
         patient.setRoomNumber(existing.getRoomNumber());
         patient.setCreatedAt(existing.getCreatedAt());
         patient.setIsDeleted(existing.getIsDeleted());
+        patient.setOwnerEmail(existing.getOwnerEmail());
         if (request.getStatus() != null) {
             patient.setStatus(request.getStatus());
         } else {
@@ -286,7 +317,7 @@ public class PatientService {
         }
         fallbackStore.put(id, patient);
  
-        auditService.logAction("UPDATE_PATIENT", "Patient", id, "Dr. Ananya Sharma", "CLINICIAN", "127.0.0.1", "SUCCESS", "Updated patient details");
+        auditService.logAction("UPDATE_PATIENT", "Patient", id, accessControlService.currentEmail(), "USER", "127.0.0.1", "SUCCESS", "Updated patient details");
         return patient;
     }
  
@@ -297,9 +328,7 @@ public class PatientService {
         }
 
         try {
-            Patient patient = patientRepository.findByIdAndIsDeleted(id, 0)
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Patient with ID " + id + " was not found in the clinical registry."));
+            Patient patient = getPatientById(id);
             patient.setIsDeleted(1);
             patient.setUpdatedAt(java.time.Instant.now());
             patientRepository.save(patient);
@@ -310,7 +339,7 @@ public class PatientService {
                     "MongoDB could not delete the patient. Please retry after the database is available.", e);
         }
         fallbackStore.remove(id);
-        auditService.logAction("DELETE_PATIENT", "Patient", id, "Dr. Ananya Sharma", "CLINICIAN", "127.0.0.1", "SUCCESS", "Discharged and archived patient");
+        auditService.logAction("DELETE_PATIENT", "Patient", id, accessControlService.currentEmail(), "USER", "127.0.0.1", "SUCCESS", "Discharged and archived patient");
     }
  
     public PatientResponse getPatient360(String id) {
@@ -323,5 +352,48 @@ public class PatientService {
         String source = mongoAvailable ? "LIVE_CLINICAL" : "SYNTHETIC_DEMO";
         return new PatientResponse(patient, vitals, risk, labs, preventive, source);
     }
+
+    // ---------------- Admin (read-only) ----------------
+
+    public List<Patient> getPatientsByOwner(String email) {
+        List<Patient> result = new ArrayList<>();
+        result.addAll(patientRepository.findByOwnerEmailAndIsDeleted(email.toLowerCase(), 0));
+        result.addAll(patientRepository.findByOwnerEmailAndIsDeleted(email.toLowerCase(), 1));
+        return result;
+    }
+
+    public long countPatientsByOwner(String email) {
+        return patientRepository.countByOwnerEmailAndIsDeleted(email.toLowerCase(), 0);
+    }
+
+    public List<Patient> getAllPatientsForAdmin(String search, String condition, String status, String risk, String owner) {
+        List<Patient> list = new ArrayList<>();
+        list.addAll(patientRepository.findByIsDeleted(0));
+        list.addAll(patientRepository.findByIsDeleted(1));
+        if (owner != null && !owner.isBlank()) {
+            String needle = owner.toLowerCase();
+            list = list.stream()
+                    .filter(p -> p.getOwnerEmail() != null && p.getOwnerEmail().contains(needle))
+                    .collect(Collectors.toList());
+        }
+        if (search != null && !search.isBlank()) {
+            String needle = search.trim().toLowerCase();
+            list = list.stream().filter(p ->
+                    (p.getName() != null && p.getName().toLowerCase().contains(needle)) ||
+                    (p.getId() != null && p.getId().toLowerCase().contains(needle)) ||
+                    (p.getOwnerEmail() != null && p.getOwnerEmail().contains(needle)) ||
+                    (p.getCondition() != null && p.getCondition().toLowerCase().contains(needle))
+            ).collect(Collectors.toList());
+        }
+        if (condition != null && !condition.isBlank()) {
+            list = list.stream().filter(p -> p.getCondition() != null && p.getCondition().equalsIgnoreCase(condition)).collect(Collectors.toList());
+        }
+        if (status != null && !status.isBlank()) {
+            list = list.stream().filter(p -> p.getStatus() != null && p.getStatus().equalsIgnoreCase(status)).collect(Collectors.toList());
+        }
+        if (risk != null && !risk.isBlank()) {
+            list = list.stream().filter(p -> p.getRiskLevel() != null && p.getRiskLevel().equalsIgnoreCase(risk)).collect(Collectors.toList());
+        }
+        return list;
+    }
 }
- 

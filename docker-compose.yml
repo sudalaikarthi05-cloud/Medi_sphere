@@ -28,6 +28,7 @@ services:
       - KAFKA_ENABLED=true
       - MONGODB_ENABLED=true
       - JWT_SECRET=${JWT_SECRET:-dev-only-insecure-jwt-signing-key-not-valid-anywhere-else}
+      - ADMIN_EMAILS=${ADMIN_EMAILS:-}
       - FHIR_CLIENT_ID=${FHIR_CLIENT_ID:-medisphere-client}
     depends_on:
       - mongodb

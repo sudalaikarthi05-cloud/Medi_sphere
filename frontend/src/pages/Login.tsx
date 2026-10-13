@@ -3,20 +3,49 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 
+type Mode = 'signin' | 'register';
+
 export function Login() {
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('doctor@medisphere.demo');
-  const [password, setPassword] = useState('demo123');
+  const [mode, setMode] = useState<Mode>('signin');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
+  function switchMode(next: Mode) {
+    setMode(next);
+    setErrorMessage('');
+  }
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (login(email, password)) {
+    setErrorMessage('');
+
+    if (mode === 'register' && name.trim().length < 2) {
+      setErrorMessage('Please enter your full name.');
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (mode === 'register') {
+        await register(name.trim(), email.trim(), password);
+      } else {
+        await login(email.trim(), password);
+      }
       navigate('/dashboard', { replace: true });
-    } else {
-      setErrorMessage('Invalid credentials. Please use doctor@medisphere.demo / demo123');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Authentication failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -46,6 +75,27 @@ export function Login() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="bg-slate-900 border border-slate-800 py-8 px-6 shadow-2xl rounded-2xl sm:px-10">
+          <div className="grid grid-cols-2 gap-1 p-1 mb-6 bg-slate-950/70 border border-slate-800 rounded-lg">
+            <button
+              type="button"
+              onClick={() => switchMode('signin')}
+              className={`py-2 rounded-md text-xs font-bold tracking-wide transition ${
+                mode === 'signin' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode('register')}
+              className={`py-2 rounded-md text-xs font-bold tracking-wide transition ${
+                mode === 'register' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Create Account
+            </button>
+          </div>
+
           {errorMessage && (
             <div className="mb-5 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center space-x-2">
               <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,6 +106,25 @@ export function Login() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {mode === 'register' && (
+              <div>
+                <label htmlFor="name" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="block w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                  placeholder="e.g. Dr. Ananya Sharma"
+                />
+              </div>
+            )}
+
             <div>
               <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                 Email Address
@@ -69,7 +138,7 @@ export function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="block w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
-                placeholder="doctor@medisphere.demo"
+                placeholder="you@example.com"
               />
             </div>
 
@@ -81,35 +150,25 @@ export function Login() {
                 id="password"
                 name="password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="block w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                 placeholder="••••••••"
               />
-            </div>
-
-            <div className="p-3 bg-slate-800/60 rounded-lg border border-slate-700/60 flex items-start space-x-2.5 text-xs text-slate-300">
-              <svg className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <span className="font-semibold text-white">Demonstration Credentials:</span>
-                <div className="mt-0.5 text-slate-400 font-mono text-[11px]">
-                  Email: <span className="text-cyan-300">doctor&#64;medisphere.demo</span>
-                  <br />
-                  Password: <span className="text-cyan-300">demo123</span>
-                </div>
-              </div>
+              {mode === 'register' && (
+                <p className="mt-1.5 text-[11px] text-slate-500">Minimum 6 characters.</p>
+              )}
             </div>
 
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md shadow-cyan-500/10 text-sm font-bold text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-cyan-500 transition duration-150"
+                disabled={isSubmitting}
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md shadow-cyan-500/10 text-sm font-bold text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-cyan-500 transition duration-150 disabled:opacity-60"
               >
-                Sign In
+                {isSubmitting ? 'Please wait…' : mode === 'register' ? 'Create Account' : 'Sign In'}
               </button>
             </div>
           </form>

@@ -18,6 +18,8 @@ public class Patient {
     private int riskScore; // 0-100
     private String assignedDoctor;
     private String roomNumber;
+    @Field("owner_email")
+    private String ownerEmail;
     private Instant createdAt;
     private Instant updatedAt;
     @Field("is_deleted")
@@ -72,6 +74,9 @@ public class Patient {
 
     public String getRoomNumber() { return roomNumber; }
     public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
+
+    public String getOwnerEmail() { return ownerEmail; }
+    public void setOwnerEmail(String ownerEmail) { this.ownerEmail = ownerEmail; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

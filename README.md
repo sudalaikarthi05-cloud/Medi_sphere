@@ -17,7 +17,7 @@ support.
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Quick Start](#quick-start)
-- [Demo Credentials](#demo-credentials)
+- [Authentication & Authorization](#authentication--authorization)
 - [Project Structure](#project-structure)
 - [API Reference](#api-reference)
 - [Configuration](#configuration)
@@ -36,8 +36,8 @@ paths are unfinished or misconfigured**. Read this before relying on the system.
 
 | Component | State | Notes |
 | --- | --- | --- |
-| `frontend-react` | Working | Login, dashboard, patient list, patient 360. Builds clean, verified in a real browser. |
-| `backend` | Working (core) | Spring Boot REST API, MongoDB repositories, JWT auth, Kafka wiring. |
+| `frontend-react` | Working | Login/register, dashboard, patient list, patient 360, bookings, admin area. Builds clean. |
+| `backend` | Working (core) | Spring Boot REST API, MongoDB repositories, real JWT auth + roles + per-user ownership, Kafka wiring. |
 | Kafka | Partially wired | Producer/consumer exist; `docker-compose` sets `KAFKA_ENABLED=true` but no topics are provisioned. |
 | MongoDB | Wired | Backend now reads `MONGODB_URI`; the Compose `mongodb` container actually receives data. |
 | Config | Externalized | All env-specific values are placeholders; `prod` profile fails fast without secrets. |
@@ -128,9 +128,11 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173> and sign in with the demo account below. The UI ships with synthetic
-fallback data, so **it renders fully even if no backend is running** — `src/lib/fallbackData.ts`
-supplies patients, vitals, labs, and care plans when the API is unreachable.
+Open <http://localhost:5173>. Accounts are **real and MongoDB-backed**: use **Create Account** to
+register, or **Sign In** with an existing account (see [Authentication & Authorization](#authentication--authorization)).
+Sign-in/registration require the backend to be running. After you are signed in, the patient views
+ship with synthetic fallback data, so they still render if the API later becomes unreachable —
+`src/lib/fallbackData.ts` supplies patients, vitals, labs, and care plans as a fallback.
 
 Production build:
 
@@ -186,22 +188,42 @@ docker compose down -v
 
 ---
 
-## Demo Credentials
+## Authentication & Authorization
 
-| Field | Value |
+Accounts are **real and MongoDB-backed**. There are no hardcoded demo credentials any more.
+
+### Register / sign in
+
+- `POST /api/auth/register` with `{ name, email, password }` (password >= 6 characters) creates a user
+  and returns `{ token, email, name, role }`.
+- `POST /api/auth/login` with `{ email, password }` returns the same shape.
+- Passwords are stored as **BCrypt hashes**; the hash is never returned by any endpoint.
+- The returned **JWT** carries the user's role. The SPA stores it and sends it as
+  `Authorization: Bearer <token>` on every request (`src/lib/session.ts`, `src/lib/api.ts`).
+
+### Roles
+
+| Role | How it is assigned |
 | --- | --- |
-| Email | `doctor@medisphere.demo` |
-| Password | `demo123` |
+| `ROLE_USER` | Default for every account. |
+| `ROLE_ADMIN` | Email listed in the `ADMIN_EMAILS` env var (comma-separated, case-insensitive). |
 
-Authentication is **demo-only and client-side**. `src/lib/auth.tsx` compares the input against the
-hardcoded constants `doctor@medisphere.demo` / `demo123`, then stores a **fake** token
-(`medisphere-jwt-token`) and the strings `medisphere_user` / `medisphere_token` /
-`medisphere_logged_in` in `localStorage`.
+The role is recomputed on every login, so **removing an email from `ADMIN_EMAILS` demotes that user on
+their next login**. Roles are never hardcoded in source.
 
-Note that the React app **never calls `POST /api/auth/login`**. The backend does expose that endpoint,
-and `AuthService` does validate the same hardcoded pair and return a genuinely signed JWT — but the
-SPA ignores it and keeps its own placeholder token locally. `ProtectedRoute` is a client-side
-redirect, not access control, so the credential check is bypassable by editing `localStorage`.
+### Ownership
+
+- Each patient has an `owner_email`, taken from the JWT on create and preserved on update.
+- A normal user only ever sees and edits **their own** patients; vitals, risk, and lab endpoints are
+  scoped the same way. Cross-user access returns **404** so record existence is never revealed.
+- Seed patients (no owner) are visible to **admins only**.
+- Admins bypass ownership and have a read-only area at `/admin` (users, all patients, all bookings).
+
+### Route guards
+
+`ProtectedRoute` requires a valid session; `AdminRoute` additionally requires `ROLE_ADMIN` and
+redirects normal users to `/dashboard`. Any **401/403** from the API clears the stored session and
+redirects to `/login`. These guards are UX conveniences layered on top of server-side enforcement.
 
 ---
 
@@ -213,11 +235,11 @@ medisphere-cognitive-twin/
 │   ├── Dockerfile
 │   ├── pom.xml
 │   ├── src/main/java/com/medisphere/backend/
-│   │   ├── controller/             # Patient, Vital, Risk, LabReport, Auth, Health, FHIR
-│   │   ├── service/                # Clinical + simulation services
-│   │   ├── model/                  # JPA/Mongo documents
+│   │   ├── controller/             # Patient, Vital, Risk, LabReport, Auth, Health, FHIR, Booking, Admin
+│   │   ├── service/                # Clinical + simulation services (+ Booking, Admin)
+│   │   ├── model/                  # JPA/Mongo documents (Patient, User, Booking, …)
 │   │   ├── repository/             # Spring Data MongoDB repositories
-│   │   ├── security/               # JWT filter + config
+│   │   ├── security/               # JWT filter + config + ownership enforcement
 │   │   ├── kafka/                  # Producer / consumer
 │   │   ├── fhir/                   # FHIR + SMART on FHIR client
 │   │   ├── audit/                  # Audit logging
@@ -229,11 +251,11 @@ medisphere-cognitive-twin/
 │   ├── Dockerfile                  # multi-stage: node:24-alpine → nginx:alpine
 │   ├── nginx.conf                  # SPA fallback + /api reverse proxy
 │   ├── src/
-│   │   ├── components/             # Header, Sidebar, cards, DigitalTwin, ErrorBoundary…
-│   │   ├── pages/                  # Login, Dashboard, Patients, Patient360
+│   │   ├── components/             # Header, Sidebar, AdminRoute, cards, DigitalTwin, ErrorBoundary…
+│   │   ├── pages/                  # Login, Dashboard, Patients, Patient360, Bookings, Admin
 │   │   ├── hooks/                  # usePatients, useTelemetry
-│   │   ├── lib/                    # api.ts, auth.tsx, fallbackData.ts, ui.ts
-│   │   ├── services/patients.ts    # API normalization
+│   │   ├── lib/                    # api.ts, auth.tsx, session.ts, fallbackData.ts, ui.ts
+│   │   ├── services/               # patients.ts, bookings.ts, admin.ts
 │   │   ├── App.tsx, main.tsx
 │   │   └── index.css
 │   └── index.html
@@ -258,20 +280,24 @@ medisphere-cognitive-twin/
 Base URL: `http://localhost:8080`
 
 Verified from the controller annotations in `backend/src/main/java/com/medisphere/backend/controller`
-(20 endpoints across 7 controllers).
+(28 endpoints across 9 controllers).
+
+**Security:** every endpoint requires a valid JWT (`Authorization: Bearer <token>`) **except**
+`/api/auth/**`, which is public. `/api/admin/**` additionally requires `ROLE_ADMIN`.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/auth/login` | Demo authentication |
+| `POST` | `/api/auth/register` | Create an account (returns JWT + role) |
+| `POST` | `/api/auth/login` | Sign in (returns JWT + role) |
 | `GET` | `/api/health` | Service health |
 | `GET` | `/api/health/status` | Detailed runtime status |
 | `GET` | `/api/health/audit-logs` | Audit trail |
-| `GET` | `/api/patients` | List / filter / search patients |
+| `GET` | `/api/patients` | List / filter / search own patients (admin: all) |
 | `GET` | `/api/patients/{id}` | Single patient record |
 | `GET` | `/api/patients/{id}/360` | Aggregated 360° clinical view |
-| `POST` | `/api/patients` | Create patient |
+| `POST` | `/api/patients` | Create patient (owned by caller) |
 | `PUT` | `/api/patients/{id}` | Update patient |
-| `DELETE` | `/api/patients/{id}` | Delete patient |
+| `DELETE` | `/api/patients/{id}` | Soft-delete patient |
 | `GET` | `/api/patients/{id}/vitals` | Vital signs history |
 | `POST` | `/api/patients/{id}/vitals` | Record a vital reading |
 | `POST` | `/api/patients/{id}/vitals/simulate` | Generate a synthetic vital reading |
@@ -279,6 +305,13 @@ Verified from the controller annotations in `backend/src/main/java/com/medispher
 | `GET` | `/api/patients/{id}/insights` | Risk drivers / insights |
 | `GET` | `/api/patients/{id}/labs` | Lab reports |
 | `GET` | `/api/patients/{id}/preventive-care` | Preventive care plan |
+| `GET` | `/api/bookings` | List own bookings (admin: all) |
+| `POST` | `/api/bookings` | Create a booking for an owned patient |
+| `DELETE` | `/api/bookings/{id}` | Cancel a booking |
+| `GET` | `/api/admin/users` | All users + patient/booking counts |
+| `GET` | `/api/admin/users/{email}/details` | A user's patients + bookings |
+| `GET` | `/api/admin/patients` | All patients (search / filter) |
+| `GET` | `/api/admin/bookings` | All bookings (search / filter) |
 | `GET` | `/api/fhir/metadata` | FHIR capability statement |
 | `GET` | `/api/fhir/Patient/{id}` | FHIR `Patient` resource |
 | `GET` | `/api/fhir/Observation` | FHIR `Observation` resources |
@@ -345,6 +378,7 @@ rather than silently starting with a published key.
 | `DEMO_MODE` | `true` | backend | Forced `false` in the `prod` profile |
 | `JWT_SECRET` | dev-only placeholder | backend | **No default in `prod`** |
 | `JWT_EXPIRATION_MS` | `86400000` | backend | 24 h |
+| `ADMIN_EMAILS` | (empty) | backend | Comma-separated admin allow-list (case-insensitive); grants `ROLE_ADMIN` |
 | `SERVER_PORT` | `8080` | backend | |
 | `FHIR_CLIENT_ID` | `medisphere-client` | `SmartAuthConfig` | |
 | `FHIR_AUTHORIZE_URL` | `http://localhost:8081/oauth/authorize` | `SmartAuthConfig` | |
@@ -460,17 +494,20 @@ The `prod` profile is activated by `SPRING_PROFILES_ACTIVE=prod`, which
 `infrastructure/kubernetes/configmap.yaml` already set — but the profile file did not exist until
 now, so the flag previously did nothing.
 
-### 3. The demo auth is not authentication
+### 3. Resolved: authentication is now real
 
-The UI's credential check lives entirely in the browser (`src/lib/auth.tsx`), and the token it
-mints is the literal string `medisphere-jwt-token` — it is not a JWT and is never sent to the server
-as a bearer credential. `ProtectedRoute` is a UI redirect, not access control; setting
-`medisphere_logged_in` in `localStorage` bypasses it.
+The previous client-side, hardcoded credential check has been replaced with server-enforced auth:
 
-The backend's real JWT path (`POST /api/auth/login` → `AuthService` → `JwtUtil`) is **not wired into
-the frontend**, and it authenticates against the same hardcoded demo pair. Combined with
-`@CrossOrigin` on every controller, any page on any origin can call the API. Treat the whole auth
-layer as a placeholder.
+- `src/lib/auth.tsx` now calls `POST /api/auth/register` / `POST /api/auth/login` and stores the
+  returned JWT and user (`src/lib/session.ts`).
+- `src/lib/api.ts` attaches `Authorization: Bearer <token>` to every request and clears the session +
+  redirects to `/login` on **401/403**.
+- The backend derives the user and role from the JWT and enforces access on **every** endpoint
+  (`/api/auth/**` is public; `/api/admin/**` requires `ROLE_ADMIN`), so `ProtectedRoute` / `AdminRoute`
+  are UX guards on top of real server-side enforcement, not the security boundary.
+
+Role membership is driven by `ADMIN_EMAILS`; curate that list to control admin access. `@CrossOrigin`
+is still broad — tighten it before any real deployment.
 
 ### 4. Remaining gaps
 
@@ -501,6 +538,7 @@ layer as a placeholder.
 | 12 | No CI/CD | Nothing prevents these from regressing |
 | 13 | FHIR client is mocked; no real FHIR server exists | `FHIR_BASE_URL` was removed because nothing read it. The `/api/fhir/*` endpoints serve static data. |
 | 14 | Kafka consumer double-writes vitals | `VitalController` saves to Mongo *and* publishes, then the consumer saves the same record again |
+| ~~15~~ | ~~Hardcoded demo auth + client-only `ProtectedRoute`~~ | **Fixed** — real MongoDB auth with JWT, roles, ownership, and server-side enforcement; `AdminRoute` guards the admin area. |
 
 **A prior white-page crash** — where a Mongo record with `name: null` made `getInitials()` call
 `.trim()` on `null` and blank the whole SPA — is fixed. `src/lib/ui.ts` is now null-safe and

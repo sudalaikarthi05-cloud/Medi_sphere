@@ -2,11 +2,12 @@ package com.medisphere.backend.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
+
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,49 +15,50 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException ex) {
+    private Map<String, Object> body(HttpStatus status, String message) {
         Map<String, Object> error = new HashMap<>();
         error.put("timestamp", Instant.now().toString());
-        error.put("status", HttpStatus.NOT_FOUND.value());
-        error.put("error", "Clinical Resource Not Found");
-        error.put("message", ex.getMessage());
-        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+        error.put("status", status.value());
+        error.put("error", status.getReasonPhrase());
+        error.put("message", message);
+        return error;
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException ex) {
+        return new ResponseEntity<>(body(HttpStatus.NOT_FOUND, ex.getMessage()), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, Object> error = new HashMap<>();
+        Map<String, Object> error = body(HttpStatus.BAD_REQUEST, "One or more fields failed validation");
         Map<String, String> fieldErrors = new HashMap<>();
-        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
-            fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
-        }
-        error.put("timestamp", Instant.now().toString());
-        error.put("status", HttpStatus.BAD_REQUEST.value());
-        error.put("error", "Validation Error");
-        error.put("message", "One or more patient fields failed clinical validation");
+        ex.getBindingResult().getFieldErrors().forEach(fe ->
+                fieldErrors.put(fe.getField(), fe.getDefaultMessage()));
         error.put("details", fieldErrors);
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
-        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", Instant.now().toString());
-        error.put("status", status.value());
-        error.put("error", status.getReasonPhrase());
-        error.put("message", ex.getReason());
-        return new ResponseEntity<>(error, status);
+        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
+        if (status == null) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        String message = ex.getReason() != null ? ex.getReason() : status.getReasonPhrase();
+        return new ResponseEntity<>(body(status, message), status);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
+        return new ResponseEntity<>(body(HttpStatus.FORBIDDEN, "Access denied"), HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneralException(Exception ex) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", Instant.now().toString());
-        error.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        error.put("error", "Clinical Intelligence Service Error");
-        error.put("message", "An unexpected error occurred while processing clinical data. Operating in safe fallback mode.");
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(
+                body(HttpStatus.INTERNAL_SERVER_ERROR,
+                        "An unexpected error occurred while processing clinical data."),
+                HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

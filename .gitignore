@@ -28,3 +28,7 @@ Thumbs.db
 
 # Stray scratch files
 ipconfig
+
+# Local progress / scratch notes
+TASK_PROGRESS.local.md
+*.local.md

@@ -1,4 +1,6 @@
 import { usePatients } from '../hooks/usePatients';
+import { useAuth } from '../lib/auth';
+import { getInitials } from '../lib/ui';
 
 interface HeaderProps {
   title?: string;
@@ -7,6 +9,7 @@ interface HeaderProps {
 
 export function Header({ title = 'Dashboard', subtitle = 'Unified patient intelligence and clinical insights' }: HeaderProps) {
   const { isDemoMode } = usePatients();
+  const { currentUser, isAdmin } = useAuth();
 
   return (
     <header className="bg-white border-b border-slate-200/80 px-8 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
@@ -50,11 +53,11 @@ export function Header({ title = 'Dashboard', subtitle = 'Unified patient intell
 
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm ring-2 ring-blue-100">
-            AS
+            {getInitials(currentUser?.name ?? 'User')}
           </div>
           <div className="hidden sm:block text-left">
-            <div className="text-sm font-semibold text-slate-900 leading-tight">Dr. Ananya Sharma</div>
-            <div className="text-xs text-slate-500 font-medium">Clinical Administrator</div>
+            <div className="text-sm font-semibold text-slate-900 leading-tight">{currentUser?.name ?? 'Clinician'}</div>
+            <div className="text-xs text-slate-500 font-medium">{isAdmin ? 'Administrator' : 'Clinician'}</div>
           </div>
         </div>
       </div>

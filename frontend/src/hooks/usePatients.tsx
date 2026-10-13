@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react';
 import { fetchPatients, createPatient, deletePatient as deletePatientRequest, updatePatient as updatePatientRequest } from '../services/patients';
 import type { PatientFilters } from '../services/patients';
+import { useAuth } from '../lib/auth';
 import type { Patient, PatientFormData } from '../types';
 
 interface PatientsContextValue {
@@ -22,6 +23,8 @@ const PatientsContext = createContext<PatientsContextValue | null>(null);
  * observe the same list.
  */
 export function PatientsProvider({ children }: { children: ReactNode }) {
+  const { currentUser } = useAuth();
+  const userKey = currentUser?.email ?? null;
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,9 +45,19 @@ export function PatientsProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
+  // Reload the registry whenever the logged-in user changes. On logout the
+  // list is cleared and any in-flight request is invalidated so one user's
+  // patients can never leak into another user's session.
   useEffect(() => {
+    latestRequestId.current += 1;
+    if (!userKey) {
+      setPatients([]);
+      setIsDemoMode(false);
+      setIsLoading(false);
+      return;
+    }
     loadPatients();
-  }, [loadPatients]);
+  }, [userKey, loadPatients]);
 
   const addPatient = useCallback(async (formData: PatientFormData) => {
     const created = await createPatient(formData);

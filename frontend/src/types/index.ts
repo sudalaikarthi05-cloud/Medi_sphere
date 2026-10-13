@@ -13,8 +13,47 @@ export interface Patient {
   riskScore: number; // 0-100
   assignedDoctor?: string;
   roomNumber?: string;
+  ownerEmail?: string;
   createdAt?: string;
   updatedAt?: string;
+  isDeleted?: number;
+}
+
+export type BookingStatus = 'Scheduled' | 'Completed' | 'Cancelled';
+
+export interface Booking {
+  id: string;
+  patientId: string;
+  ownerEmail?: string;
+  doctor?: string;
+  department?: string;
+  appointmentDateTime?: string;
+  reason?: string;
+  status: string;
+  createdAt?: string;
+  isDeleted?: number;
+}
+
+export interface BookingFormData {
+  patientId: string;
+  doctor: string;
+  department: string;
+  appointmentDateTime: string;
+  reason: string;
+}
+
+export interface AdminUser {
+  name: string;
+  email: string;
+  role: string;
+  joinedDate?: string;
+  patientCount: number;
+  bookingCount: number;
+}
+
+export interface AdminUserDetails {
+  patients: Patient[];
+  bookings: Booking[];
 }
 
 export interface Patient360Response {
