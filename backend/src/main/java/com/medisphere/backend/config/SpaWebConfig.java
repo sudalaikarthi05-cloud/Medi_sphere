@@ -8,9 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class SpaWebConfig implements WebMvcConfigurer {
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addViewController("/{spring:[^\\.]+}")
-                .setViewName("forward:/index.html");
-        registry.addViewController("/**/{spring:[^\\.]+}")
+        registry.addViewController("/{path:[^\\.]*}")
                 .setViewName("forward:/index.html");
     }
 }
