@@ -32,3 +32,7 @@ ipconfig
 # Local progress / scratch notes
 TASK_PROGRESS.local.md
 *.local.md
+
+# Local credential files
+*.local.env
+admin-credentials*.env
