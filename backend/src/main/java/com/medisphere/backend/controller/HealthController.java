@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
@@ -16,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/health")
 @CrossOrigin
 public class HealthController {
 
@@ -32,7 +30,12 @@ public class HealthController {
         this.patientService = patientService;
     }
 
-    @GetMapping
+    @GetMapping("/health")
+    public ResponseEntity<String> getLiveness() {
+        return ResponseEntity.ok("OK");
+    }
+
+    @GetMapping("/api/health")
     public ResponseEntity<Map<String, Object>> getHealth() {
         Map<String, Object> health = new HashMap<>();
         health.put("status", "UP");
@@ -42,7 +45,7 @@ public class HealthController {
         return ResponseEntity.ok(health);
     }
 
-    @GetMapping("/status")
+    @GetMapping("/api/health/status")
     public ResponseEntity<HealthStatusResponse> getSystemStatus() {
         Map<String, String> services = new HashMap<>();
         services.put("mongodb", patientService.isMongoAvailable() ? "ONLINE" : "DEMO_REHYDRATED");
@@ -61,7 +64,7 @@ public class HealthController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/audit-logs")
+    @GetMapping("/api/health/audit-logs")
     public ResponseEntity<List<AuditLog>> getAuditLogs() {
         return ResponseEntity.ok(auditService.getRecentAuditLogs());
     }
