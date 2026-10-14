@@ -123,7 +123,7 @@ actually used; `npm run dev` still targets `http://localhost:8080/api` directly.
 ### 1. Frontend (recommended starting point)
 
 ```bash
-cd frontend-react
+cd frontend
 npm install
 npm run dev
 ```
@@ -143,16 +143,25 @@ npm run preview
 
 ### 2. Backend
 
+Run from the **repository root** so the root `.env` is loaded:
+
 ```bash
-cd backend
-mvn spring-boot:run
+mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.workingDirectory=$(pwd)
 ```
+
+> **Do not** use `cd backend && mvn spring-boot:run`. The Spring Boot plugin defaults its working
+> directory to the project basedir (`backend/`), so `spring.config.import=optional:file:.env` finds
+> no `.env` there. `MONGODB_URI` then stays unset and the app fails at startup with
+> `The connection string is invalid`. The `spring-boot.run.workingDirectory` override above points
+> the process at the repo root instead.
 
 The API starts on `http://localhost:8080`. Health check:
 
 ```bash
 curl http://localhost:8080/api/health/status
 ```
+
+On Windows PowerShell, use `-Dspring-boot.run.workingDirectory=C:\path\to\medisphere`.
 
 > The backend reads `MONGODB_URI`. Out of the box it targets a **local** MongoDB, so start one
 > (e.g. `docker compose up mongodb`) or set the Atlas values in the root `.env`. If MongoDB is
@@ -567,6 +576,28 @@ checks on `Date.now()`, and `react-refresh` export-shape notes).
 mvn spring-boot:run      # run
 mvn clean package        # build → target/backend-1.0.0-SNAPSHOT.jar
 mvn test                 # tests
+```
+
+### Running the stack locally (verified)
+
+Run the two commands below in separate terminals, from the **repository root**:
+
+```bash
+# Terminal 1 — backend (loads the root .env, see Quick Start)
+mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.workingDirectory=$(pwd)
+
+# Terminal 2 — frontend
+cd frontend && npm install && npm run dev
+```
+
+Smoke-test both (all three should succeed):
+
+```bash
+curl http://localhost:8080/api/health/status          # → {"status":"UP",...,"mongodb":"ONLINE"}
+curl http://localhost:5173/                           # → 200, <title>Medisphere Cognitive Twin</title>
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test User","email":"localtest@example.com","password":"secret123"}'   # → 200 + JWT
 ```
 
 ### Conventions
