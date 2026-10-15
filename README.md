@@ -418,17 +418,14 @@ Render's free web services suspend after 15 minutes without inbound requests. Th
 10 minutes from GitHub Actions; a scheduler inside the backend would stop when that backend suspends
 and could not wake it.
 
-To enable it:
+The workflow is configured to ping `https://medi-sphere.onrender.com/health` directly, so it does
+not require an Actions secret or variable. Ensure GitHub Actions is enabled and this workflow is on
+the repository's default branch. To test it immediately, run **Actions → Keep Render backend awake →
+Run workflow**.
 
-1. In the GitHub repository, open **Settings → Secrets and variables → Actions → Variables** and
-   add a repository variable named `RENDER_BACKEND_URL` with the service's public base URL, such as
-   `https://your-service.onrender.com` (no `/health` suffix).
-2. Ensure GitHub Actions is enabled and this workflow is on the repository's default branch.
-3. Optionally run **Actions → Keep Render backend awake → Run workflow** to verify the URL.
-
-The workflow fails visibly if the variable is missing or the health request returns an HTTP error.
-GitHub scheduled workflows can occasionally start late, so this is a keep-awake workaround rather
-than an uptime guarantee.
+The workflow fails visibly if the health request still returns an HTTP error after retries. GitHub
+scheduled workflows can occasionally start late, so this is a keep-awake workaround rather than an
+uptime guarantee.
 
 ### Removed variables
 
