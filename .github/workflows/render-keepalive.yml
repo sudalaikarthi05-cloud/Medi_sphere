@@ -1,0 +1,27 @@
+name: Keep Render backend awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the Spring Boot health endpoint
+        env:
+          RENDER_BACKEND_URL: ${{ vars.RENDER_BACKEND_URL }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$RENDER_BACKEND_URL" ]]; then
+            echo "Set the RENDER_BACKEND_URL Actions variable to the Render service base URL." >&2
+            exit 1
+          fi
+          curl --fail --show-error --silent --max-time 30 \
+            --output /dev/null \
+            --write-out 'Render backend health: HTTP %{http_code}\n' \
+            "${RENDER_BACKEND_URL%/}/health"
