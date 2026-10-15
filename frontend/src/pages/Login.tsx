@@ -50,7 +50,7 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-slate-950 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 

@@ -163,7 +163,7 @@ export function Patients() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header title="Patients" subtitle="Manage and monitor the patient registry" />
 
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         {successMessage && (
           <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fade-in">
             <div className="flex items-center space-x-2">
@@ -199,12 +199,12 @@ export function Patients() {
             />
           </div>
 
-          <div className="flex items-center space-x-3 w-full md:w-auto justify-end">
+          <div className="flex w-full flex-col justify-end gap-3 sm:flex-row sm:items-center md:w-auto">
             <select
               value={selectedCondition}
               onChange={(e) => onConditionChange(e.target.value)}
               aria-label="Filter patients by condition"
-              className="py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="min-w-0 flex-1 py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 sm:flex-none"
             >
               <option value="">All Conditions</option>
               {CONDITION_FILTERS.map((condition) => (
@@ -330,7 +330,7 @@ export function Patients() {
 
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-scale-in">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl animate-scale-in sm:p-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -374,7 +374,7 @@ export function Patients() {
                 {fieldInvalid('name') && <p className="text-[11px] text-rose-500 mt-1">Full name is required</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="patientAge" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                     Age <span className="text-rose-500">*</span>

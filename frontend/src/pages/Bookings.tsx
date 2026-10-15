@@ -156,7 +156,7 @@ export function Bookings() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header title="Bookings" subtitle="Schedule and manage patient appointments" />
 
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         {successMessage && (
           <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm">
             <div className="flex items-center space-x-2">
@@ -176,7 +176,7 @@ export function Bookings() {
           </div>
         )}
 
-        <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm flex items-center justify-between gap-4">
+        <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-sm font-bold text-slate-900">Appointment Bookings</h3>
             <p className="text-xs text-slate-500 mt-0.5">Appointments for the patients you own.</p>
@@ -184,7 +184,7 @@ export function Bookings() {
           <button
             onClick={openModal}
             disabled={patients.length === 0}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center space-x-2 flex-shrink-0"
+            className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center justify-center space-x-2 flex-shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -260,7 +260,7 @@ export function Bookings() {
 
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl sm:p-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -307,7 +307,7 @@ export function Bookings() {
                 {fieldInvalid('patientId') && <p className="text-[11px] text-rose-500 mt-1">Patient is required</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="bookingDoctor" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                     Doctor <span className="text-rose-500">*</span>

@@ -65,7 +65,7 @@ export function Patient360() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header title="Patient 360" subtitle="Unified clinical context & cognitive twin intelligence" />
 
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <Link
             to="/patients"
@@ -77,8 +77,8 @@ export function Patient360() {
             <span>Back to Patients</span>
           </Link>
 
-          <div className="flex items-center space-x-3 self-start sm:self-auto">
-            <div className="flex items-center space-x-2 px-3.5 py-1.5 bg-white border border-slate-200/90 rounded-full shadow-sm text-xs">
+          <div className="flex w-full flex-wrap items-center gap-2 self-start sm:w-auto sm:self-auto">
+            <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-full border border-slate-200/90 bg-white px-3 py-1.5 text-xs shadow-sm">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
@@ -125,8 +125,8 @@ export function Patient360() {
                 {getInitials(patient.name)}
               </div>
               <div>
-                <div className="flex items-center space-x-3">
-                  <h2 className="text-xl font-bold text-slate-900">{patient.name}</h2>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <h2 className="text-lg font-bold text-slate-900 sm:text-xl">{patient.name}</h2>
                   <span className="px-2.5 py-0.5 rounded-full font-mono text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
                     {patient.id}
                   </span>

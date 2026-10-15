@@ -108,8 +108,8 @@ export function Dashboard() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header title="Dashboard" subtitle="Unified patient intelligence and clinical insights" />
 
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-8">
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-6 border border-slate-700/80">
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:space-y-8 sm:p-6 lg:p-8">
+        <div className="relative flex flex-col items-center justify-between gap-6 overflow-hidden rounded-2xl border border-slate-700/80 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-5 text-white shadow-xl sm:p-8 lg:flex-row">
           <div className="relative z-10 max-w-2xl">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-900/60 border border-blue-700/50 text-xs font-semibold text-cyan-300 mb-3">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -122,7 +122,7 @@ export function Dashboard() {
               Monitor patient health, identify emerging risks, and support preventive clinical decisions from one unified
               workspace.
             </p>
-            <div className="mt-5 flex items-center space-x-4">
+            <div className="mt-5 flex flex-wrap items-center gap-3">
               <Link
                 to="/patients"
                 className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center space-x-2"

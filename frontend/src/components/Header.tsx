@@ -12,20 +12,20 @@ export function Header({ title = 'Dashboard', subtitle = 'Unified patient intell
   const { currentUser, isAdmin } = useAuth();
 
   return (
-    <header className="bg-white border-b border-slate-200/80 px-8 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
-      <div>
+    <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white px-4 py-3 shadow-sm sm:px-6 sm:py-4 lg:px-8">
+      <div className="min-w-0">
         <div className="flex items-center space-x-3">
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h2>
+          <h2 className="truncate text-lg font-bold tracking-tight text-slate-900 sm:text-xl">{title}</h2>
           {isDemoMode && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300/60">
               SYNTHETIC DEMO DATA
             </span>
           )}
         </div>
-        <p className="text-xs text-slate-500 mt-0.5 font-normal">{subtitle}</p>
+        <p className="mt-0.5 line-clamp-2 text-[11px] font-normal text-slate-500 sm:text-xs">{subtitle}</p>
       </div>
 
-      <div className="flex items-center space-x-5">
+      <div className="flex shrink-0 items-center space-x-2 sm:space-x-4">
         <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200/70 rounded-full text-xs font-medium text-emerald-700">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -49,10 +49,10 @@ export function Header({ title = 'Dashboard', subtitle = 'Unified patient intell
           <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white" />
         </button>
 
-        <div className="h-8 w-px bg-slate-200" />
+        <div className="hidden h-8 w-px bg-slate-200 sm:block" />
 
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm ring-2 ring-blue-100">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-sm font-semibold text-white shadow-sm ring-2 ring-blue-100 sm:h-10 sm:w-10">
             {getInitials(currentUser?.name ?? 'User')}
           </div>
           <div className="hidden sm:block text-left">

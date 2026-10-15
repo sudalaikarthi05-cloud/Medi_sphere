@@ -156,7 +156,7 @@ export function Admin() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header title="Admin" subtitle="Read-only overview across all users, patients and bookings" />
 
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         {error && (
           <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
             {error}
@@ -164,12 +164,12 @@ export function Admin() {
         )}
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="inline-flex p-1 bg-white border border-slate-200 rounded-lg shadow-sm">
+          <div className="flex w-full overflow-x-auto p-1 bg-white border border-slate-200 rounded-lg shadow-sm md:w-auto">
             {TABS.map((entry) => (
               <button
                 key={entry.id}
                 onClick={() => setTab(entry.id)}
-                className={`px-4 py-2 text-xs font-bold rounded-md transition ${
+                className={`shrink-0 px-4 py-2 text-xs font-bold whitespace-nowrap rounded-md transition ${
                   tab === entry.id ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -215,54 +215,56 @@ export function Admin() {
 
         {tab === 'users' && (
           <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200/70 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3 px-6">User</th>
-                  <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Joined</th>
-                  <th className="py-3 px-4">Patients</th>
-                  <th className="py-3 px-4">Bookings</th>
-                  <th className="py-3 px-6 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
-                {users.map((user) => (
-                  <tr key={user.email} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3.5 px-6">
-                      <div className="font-bold text-slate-900">{user.name}</div>
-                      <div className="text-[11px] text-slate-400">{user.email}</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold ${roleBadge(user.role)}`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600">{formatDate(user.joinedDate)}</td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-700">{user.patientCount}</td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-700">{user.bookingCount}</td>
-                    <td className="py-3.5 px-6">
-                      <div className="flex items-center justify-end">
-                        <button
-                          type="button"
-                          onClick={() => void openDetails(user.email)}
-                          className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition"
-                        >
-                          View
-                        </button>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200/70 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="py-3 px-6">User</th>
+                    <th className="py-3 px-4">Role</th>
+                    <th className="py-3 px-4">Joined</th>
+                    <th className="py-3 px-4">Patients</th>
+                    <th className="py-3 px-4">Bookings</th>
+                    <th className="py-3 px-6 text-right">Action</th>
                   </tr>
-                ))}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-10 text-slate-400 text-xs">
-                      {usersLoading ? 'Loading users...' : 'No users found.'}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {users.map((user) => (
+                    <tr key={user.email} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3.5 px-6">
+                        <div className="font-bold text-slate-900">{user.name}</div>
+                        <div className="text-[11px] text-slate-400">{user.email}</div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold ${roleBadge(user.role)}`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600">{formatDate(user.joinedDate)}</td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-700">{user.patientCount}</td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-700">{user.bookingCount}</td>
+                      <td className="py-3.5 px-6">
+                        <div className="flex items-center justify-end">
+                          <button
+                            type="button"
+                            onClick={() => void openDetails(user.email)}
+                            className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition"
+                          >
+                            View
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {users.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-10 text-slate-400 text-xs">
+                        {usersLoading ? 'Loading users...' : 'No users found.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -364,7 +366,7 @@ export function Admin() {
 
       {detailEmail && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl border border-slate-200">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl sm:p-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-bold text-slate-900">User Details</h3>

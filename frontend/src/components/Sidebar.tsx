@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { usePatients } from '../hooks/usePatients';
 import { getInitials } from '../lib/ui';
@@ -11,6 +12,7 @@ export function Sidebar() {
   const { logout, currentUser, isAdmin } = useAuth();
   const { patients } = usePatients();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Angular always linked the first patient; keep parity by defaulting to P001
   const currentPatientId = patients.length > 0 ? patients[0].id : 'P001';
@@ -20,8 +22,86 @@ export function Sidebar() {
     navigate('/login', { replace: true });
   }
 
+  const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center rounded-lg px-4 py-3 text-sm font-medium transition ${
+      isActive ? 'bg-blue-600/20 text-cyan-300' : 'text-slate-200 hover:bg-slate-800'
+    }`;
+
   return (
-    <aside className="w-64 bg-slate-900 text-slate-100 flex flex-col h-screen border-r border-slate-800 select-none">
+    <>
+      <div className="flex items-center justify-start gap-3 border-b border-slate-800 bg-slate-900 px-4 py-3 text-slate-100 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen((open) => !open)}
+          aria-expanded={mobileMenuOpen}
+          aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          className="rounded-lg p-2 text-slate-200 hover:bg-slate-800"
+        >
+          {mobileMenuOpen ? (
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600">
+            <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-bold tracking-wide text-white">MEDISPHERE</p>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-cyan-400">Cognitive Twin</p>
+          </div>
+        </div>
+      </div>
+
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-40 bg-slate-950/60 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <nav
+            aria-label="Main navigation"
+            className="absolute inset-y-0 left-0 flex w-[min(20rem,85vw)] flex-col border-r border-slate-800 bg-slate-900 p-4 text-slate-100 shadow-2xl motion-safe:animate-[slide-in-left_200ms_ease-out]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between border-b border-slate-800 pb-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Clinical Intelligence</p>
+                <p className="mt-1 truncate text-sm font-semibold text-white">{currentUser?.name ?? 'Clinician'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close navigation menu"
+                className="rounded-lg p-2 text-slate-300 hover:bg-slate-800"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-1">
+              <NavLink to="/dashboard" className={mobileLinkClass} onClick={() => setMobileMenuOpen(false)}>Dashboard</NavLink>
+              <NavLink to="/patients" className={mobileLinkClass} onClick={() => setMobileMenuOpen(false)}>Patients</NavLink>
+              <NavLink to={`/patient/${currentPatientId}`} className={mobileLinkClass} onClick={() => setMobileMenuOpen(false)}>Patient 360</NavLink>
+              <NavLink to="/bookings" className={mobileLinkClass} onClick={() => setMobileMenuOpen(false)}>Bookings</NavLink>
+              {isAdmin && <NavLink to="/admin" className={mobileLinkClass} onClick={() => setMobileMenuOpen(false)}>Admin</NavLink>}
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="mt-auto rounded-lg border border-slate-700 px-4 py-3 text-left text-sm font-semibold text-rose-300 hover:bg-slate-800"
+            >
+              Sign out
+            </button>
+          </nav>
+        </div>
+      )}
+
+      <aside className="hidden h-dvh w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-900 text-slate-100 select-none lg:flex">
       <div className="p-6 border-b border-slate-800">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
@@ -144,6 +224,7 @@ export function Sidebar() {
           </button>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

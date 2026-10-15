@@ -13,9 +13,9 @@ import { useAuth } from './lib/auth';
 
 function Shell({ children }: { children: ReactElement }) {
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-800">
+    <div className="flex min-h-dvh flex-col bg-slate-50 font-sans text-slate-800 lg:h-dvh lg:flex-row lg:overflow-hidden">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">{children}</div>
     </div>
   );
 }
