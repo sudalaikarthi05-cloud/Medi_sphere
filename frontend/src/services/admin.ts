@@ -44,6 +44,10 @@ export async function fetchAllPatients(filters: AdminPatientFilters = {}): Promi
   return Array.isArray(raw) ? raw : [];
 }
 
+export async function fetchAdminActivePatientCount(): Promise<number> {
+  return api.get<number>('/admin/patients/active-count');
+}
+
 export async function fetchAllBookings(filters: AdminBookingFilters = {}): Promise<Booking[]> {
   const raw = await api.get<Booking[]>(`/admin/bookings${buildQuery(filters)}`);
   return Array.isArray(raw) ? raw : [];

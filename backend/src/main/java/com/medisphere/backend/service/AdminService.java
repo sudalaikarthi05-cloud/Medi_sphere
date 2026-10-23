@@ -57,6 +57,10 @@ public class AdminService {
         return patientService.getAllPatientsForAdmin(search, condition, status, risk, owner);
     }
 
+    public long countActivePatients() {
+        return patientService.countActivePatientsForAdmin();
+    }
+
     public List<Booking> getAllBookings(String search, String status, String owner) {
         return bookingService.getAllBookingsForAdmin(search, status, owner);
     }

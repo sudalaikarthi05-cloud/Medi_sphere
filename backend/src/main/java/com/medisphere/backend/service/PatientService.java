@@ -366,6 +366,21 @@ public class PatientService {
         return patientRepository.countByOwnerEmailAndIsDeleted(email.toLowerCase(), 0);
     }
 
+    public long countActivePatientsForAdmin() {
+        if (!mongoAvailable) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "MongoDB is unavailable. Active patient count could not be loaded.");
+        }
+        try {
+            return patientRepository.countByStatusIgnoreCaseAndIsDeleted("Active", 0);
+        } catch (DataAccessException e) {
+            mongoAvailable = false;
+            log.error("Failed to read active patient count from MongoDB.", e);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "MongoDB could not provide the active patient count. Please retry when the database is available.", e);
+        }
+    }
+
     public List<Patient> getAllPatientsForAdmin(String search, String condition, String status, String risk, String owner) {
         List<Patient> list = new ArrayList<>();
         list.addAll(patientRepository.findByIsDeleted(0));

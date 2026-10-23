@@ -43,6 +43,11 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getAllPatients(search, condition, status, risk, owner));
     }
 
+    @GetMapping("/patients/active-count")
+    public ResponseEntity<Long> getActivePatientCount() {
+        return ResponseEntity.ok(adminService.countActivePatients());
+    }
+
     @GetMapping("/bookings")
     public ResponseEntity<List<Booking>> getAllBookings(
             @RequestParam(required = false) String search,

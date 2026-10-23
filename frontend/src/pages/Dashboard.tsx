@@ -2,8 +2,10 @@ import { Link } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { AlertCard } from '../components/AlertCard';
 import { usePatients } from '../hooks/usePatients';
+import { useAuth } from '../lib/auth';
+import { fetchAdminActivePatientCount } from '../services/admin';
 import { getInitials, getRiskBadge, getStatusBadge, getStatusDot } from '../lib/ui';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const STAT_CARDS = [
   {
@@ -80,9 +82,32 @@ function StatIcon({ kind }: { kind: string }) {
 
 export function Dashboard() {
   const { patients, deletePatient } = usePatients();
+  const { isAdmin } = useAuth();
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
   const [deletingPatientId, setDeletingPatientId] = useState<string | null>(null);
+  const [activePatientCount, setActivePatientCount] = useState<number | null>(null);
+  const [activePatientCountError, setActivePatientCountError] = useState('');
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    let active = true;
+    fetchAdminActivePatientCount()
+      .then((count) => {
+        if (active) setActivePatientCount(count);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setActivePatientCountError(
+            error instanceof Error ? error.message : 'Could not load MongoDB patient count.',
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAdmin]);
+
   const latestPatient = patients.reduce((latest, patient) => {
     if (!latest) return patient;
     return Date.parse(patient.createdAt ?? '') > Date.parse(latest.createdAt ?? '') ? patient : latest;
@@ -173,7 +198,7 @@ export function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {STAT_CARDS.map((card) => (
+          {STAT_CARDS.filter((card) => isAdmin || card.label !== 'Active Patients').map((card) => (
             <div
               key={card.label}
               className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition"
@@ -185,12 +210,20 @@ export function Dashboard() {
                 </div>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-               <span className="text-3xl font-extrabold text-slate-900 tracking-tight">
-  {card.label === 'Total Patients' ? patients.length : card.value}
-</span>
+                <span className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {card.label === 'Total Patients'
+                    ? patients.length
+                    : card.label === 'Active Patients'
+                      ? activePatientCount ?? '—'
+                      : card.value}
+                </span>
                 <span className={`inline-flex items-center text-xs font-bold ${card.deltaClass}`}>{card.delta}</span>
               </div>
-              <p className="text-xs text-slate-400 mt-2 font-medium">{card.caption}</p>
+              <p className="text-xs text-slate-400 mt-2 font-medium">
+                {card.label === 'Active Patients' && activePatientCountError
+                  ? activePatientCountError
+                  : card.caption}
+              </p>
             </div>
           ))}
         </div>

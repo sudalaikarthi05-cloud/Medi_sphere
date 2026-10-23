@@ -14,5 +14,6 @@ public interface PatientRepository extends MongoRepository<Patient, String> {
     List<Patient> findByOwnerEmailAndIsDeleted(String ownerEmail, int isDeleted);
     Optional<Patient> findByIdAndOwnerEmailAndIsDeleted(String id, String ownerEmail, int isDeleted);
     long countByOwnerEmailAndIsDeleted(String ownerEmail, int isDeleted);
+    long countByStatusIgnoreCaseAndIsDeleted(String status, int isDeleted);
     boolean existsByOwnerEmailAndIsDeleted(String ownerEmail, int isDeleted);
 }
